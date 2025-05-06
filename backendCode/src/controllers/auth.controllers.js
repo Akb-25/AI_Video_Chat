@@ -1,13 +1,15 @@
 import express from "express";
-import User from "..models/user.model.js";
+import User from "../models/user.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import { generateToken } from "../lib/utils";
+import { generateToken } from "../lib/utils.js";
+import cloudinary from "../lib/cloudinary.js";
 dotenv.config();
 
 export const signup = async (req, res) => {
     const { fullName, email, password } = req.body;
+    console.log("req.body: ", req.body);
     try{ 
         if (!fullName || !email || !password) {
             return res.status(400).json({ message: "All fields are required" });
@@ -21,17 +23,17 @@ export const signup = async (req, res) => {
             return res.status(400).json({ message: "User already exists" });
         }
 
-        const salt = await decrypt.genSalt(10);
+        const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        const user = await new User({
+        const newUser = new User({
             fullName, 
             email, 
             password: hashedPassword,
         })
 
         if (newUser) {
-            generateToken(user._id, res)
+            generateToken(newUser._id, res)
             await newUser.save();
 
             res.status(201).json({
@@ -44,7 +46,7 @@ export const signup = async (req, res) => {
             res.status(400).json({ message: "Invalid user data "});
         }
     } catch (error) {
-        res.status(500).json({ message: "Something went wrong in server" });
+        res.status(500).json({ message: "Something went wrong in server: ", error });
     }
 };
 
@@ -59,7 +61,7 @@ export const login = async (req, res) => {
         if (!user) {
             return res.status(400).json({ message: "User not found" });
         }
-        const isMatch  = await bcrypt.compare(password, user.passWord);
+        const isMatch  = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ message: "Invalid credentials" });
         }
@@ -86,3 +88,33 @@ export const logout = (req, res) => {
     }
 };
 
+export const updateProfile = async (req, res) => {
+    try{
+        const profilePic = req.body;
+        const userId = req.user._id;
+
+        if (!profilePic) {
+            return res.status(400).json({ message: "Please provide a profile picture" });
+        }
+
+        const uploadResponse = await cloudinary.uploader.upload(profilePic);
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { profilePic: uploadResponse.secure_url },
+            { new: true }
+        );
+        res.status(200).json(updatedUser);
+    } catch (error){
+        console.error("Error in updating profile: ", error.message);
+        res.status(500).json({ message: "Internal server error" });
+    }
+}
+
+export const checkAuth = (req, res) => {
+    try{
+        res.status(200).json(req.user);    
+    } catch (error) {
+        console.error("Error in checking auth: ", error.message);
+        res.status(500).json({ message: "Internal server error" });
+    }
+}
