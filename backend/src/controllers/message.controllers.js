@@ -3,6 +3,7 @@ import Message from "../models/message.model.js";
 
 import cloudinary from "../lib/cloudinary.js";
 import { getReceiverSocketId, io } from "../lib/socket.js";
+import { generateStreamToken } from "../lib/stream.js";
 
 export const getUsersForSidebar = async (req, res) => {
   try {
@@ -69,3 +70,16 @@ export const sendMessage = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+
+export async function getStreamToken(req, res) {
+  try {
+    console.log("req.user._id: ", req.user._id);
+    const token = generateStreamToken(req.user._id);
+    console.log("token: ", token);
+    res.status(200).json({ token });
+  } catch (error) {
+    console.log("Error in getStreamToken controller:", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}

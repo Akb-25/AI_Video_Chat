@@ -1,10 +1,35 @@
 import { X } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
-
+import CallButton from "../components/CallButton";
+import { VideoIcon} from "lucide-react";
+import toast from "react-hot-toast";
 const ChatHeader = () => {
   const { selectedUser, setSelectedUser } = useChatStore();
   const { onlineUsers } = useAuthStore();
+
+  const {sendMessage} = useChatStore();
+  const { authUser } = useAuthStore();
+
+  const handleVideoCall = async () => {
+    if (!authUser || !selectedUser) return;
+    console.log(authUser._id);
+    console.log(selectedUser._id);
+    const callId = [authUser._id, selectedUser._id].sort().join("-");
+    const callUrl = `${window.location.origin}/call/${callId}`;
+
+    try {
+      await sendMessage({
+        text: `Join my video call here ${callUrl}`
+      });
+
+      toast.success("Video call link sent!");
+    } catch (error) {
+      console.error("Failed to send video call link:", error);
+      toast.error("Failed to send video call link");
+    }
+  };
+
 
   return (
     <div className="p-2.5 border-b border-base-300">
@@ -27,8 +52,14 @@ const ChatHeader = () => {
         </div>
 
         {/* Close button */}
-        <button onClick={() => setSelectedUser(null)}>
-          <X />
+        
+      {/* <CallButton handleVideoCall={handleVideoCall} /> */}
+        {/* <CallButton handleVideoCall={handleVideoCall} /> */}
+        {/* <button onClick={() => setSelectedUser(null)}> */}
+          {/* <X /> */}
+        {/* </button> */}
+        <button onClick={handleVideoCall} className="btn btn-success btn-sm text-white">
+              <VideoIcon className="size-6" />
         </button>
       </div>
     </div>

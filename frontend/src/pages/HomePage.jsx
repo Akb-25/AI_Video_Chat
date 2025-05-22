@@ -6,6 +6,17 @@ import ChatContainer from "../components/ChatContainer";
 
 const HomePage = () => {
   const { selectedUser } = useChatStore();
+  const handleVideoCall = () => {
+    if (channel) {
+      const callUrl = `/call/${channel.id}`;
+
+      channel.sendMessage({
+        text: `I've started a video call. Join me here: ${callUrl}`,
+      });
+
+      toast.success("Video call link sent successfully!");
+    }
+  };
 
   return (
     <div className="h-screen bg-base-200">
