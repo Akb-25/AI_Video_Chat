@@ -1,6 +1,8 @@
 import express from "express";
 import authRoutes from "./routes/auth.route.js";
 import messageRoutes from "./routes/message.route.js";
+import meetingsRoutes from "./routes/meetings.route.js";
+import geminiRoutes from "./routes/gemini.route.js";
 import dotenv from "dotenv";
 import { connectDB } from "./lib/db.js";
 import cookieParser from "cookie-parser";
@@ -22,7 +24,8 @@ app.use(cors({
 
 app.use("/auth", authRoutes);
 app.use("/messages", messageRoutes);
-
+app.use("/meetings", meetingsRoutes);
+app.use("/gemini", geminiRoutes);
 server.listen(5000, () => {
     console.log("Server is running on port: "+ PORT);
     connectDB();

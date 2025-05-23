@@ -1,21 +1,34 @@
 import { useEffect, useState } from "react";
 import { Calendar, Users, User } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
+import { axiosInstance } from "../lib/axios";
+import { useNavigate } from "react-router-dom";
 
 const MeetingsPage = () => {
   const { authUser } = useAuthStore();
   const [meetings, setMeetings] = useState([]);
   const [error, setError] = useState(null);
-
+  const navigate = useNavigate();
   useEffect(() => {
-    fetch("/api/meetings/${authUser._id}")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load meetings");
-        return res.json();
-      })
-      .then(setMeetings)
-      .catch((err) => setError(err.message));
-  }, []);
+    const fetchMeetings = async () => {
+      try{
+        // const res = await axiosInstance.get(`/meetings/${authUser._id}`);
+        const res = await axiosInstance.get(`/meetings/${authUser._id}`);
+        
+        console.log(authUser._id);
+        console.log(res.data);
+
+        setMeetings(res.data);
+        // if (res.status != 200 || res.status != 201 || res.status != 204 ) {
+        //   throw new Error("Failed to load meetings");
+        // }
+          // const data = await res.json();
+      } catch (err) {
+        setError(err.message);
+      }
+    };
+    fetchMeetings();
+  }, [authUser._id]);
 
   return (
     <div className="h-screen pt-20">
@@ -35,7 +48,8 @@ const MeetingsPage = () => {
               {meetings.map((meeting) => (
                 <div
                   key={meeting._id}
-                  className="bg-base-200 border border-base-content/10 p-4 rounded-xl hover:shadow-lg transition"
+                  onClick={() => navigate(`/meetings/info/${meeting._id}`)}
+                  className="cursor-pointer bg-base-200 border border-base-content/10 p-4 rounded-xl hover:shadow-lg transition"
                 >
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                     <div>
@@ -46,7 +60,7 @@ const MeetingsPage = () => {
                       </p>
                     </div>
 
-                    <div className="text-sm space-y-1 sm:text-right">
+                    {/* <div className="text-sm space-y-1 sm:text-right">
                       <p className="flex items-center gap-1 justify-end text-zinc-400">
                         <User className="w-4 h-4" />
                         Host: {meeting?.hostId?.name || "Unknown"}
@@ -55,7 +69,7 @@ const MeetingsPage = () => {
                         <Users className="w-4 h-4" />
                         Participants: {meeting.meetingParticipants?.length || 0}
                       </p>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               ))}

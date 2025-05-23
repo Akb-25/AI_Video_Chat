@@ -13,7 +13,7 @@ import {
   CallingState,
   useCallStateHooks,
 } from "@stream-io/video-react-sdk";
-
+import { useRef } from "react";
 import "@stream-io/video-react-sdk/dist/css/styles.css";
 import toast from "react-hot-toast";
 import { axiosInstance } from "../lib/axios";
@@ -28,7 +28,7 @@ const CallPage = () => {
   const [tokenData, setTokenData] = useState(null);
   const { authUser } = useAuthStore();
   const [isRecording, setIsRecording] = useState(false);
-
+  const clientRef = useRef(null)
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,7 +47,7 @@ const CallPage = () => {
 
   useEffect(() => {
     const initCall = async () => {
-      if (!tokenData?.token || !authUser || !callId) return;
+      if (!tokenData?.token || !authUser || !callId || clientRef.current) return;
 
       try {
         const user = {
@@ -61,6 +61,14 @@ const CallPage = () => {
           user,
           token: tokenData.token,
         });
+
+        // const videoClient = await StreamVideoClient.getOrCreateInstance({
+        //   apiKey: STREAM_API_KEY,
+        //   user,
+        //   token: tokenData.token,
+        // });
+
+        clientRef.current = videoClient;
 
         const callInstance = videoClient.call("default", callId);
 
@@ -78,6 +86,7 @@ const CallPage = () => {
         setClient(videoClient);
         setCall(callInstance);
       } catch (error) {
+        console.error("Error joining call:", error);
         toast.error("Could not join the call. Please try again.");
       } finally {
         setIsConnecting(false);
@@ -97,24 +106,60 @@ const CallPage = () => {
     }
   };
 
+  // const handleStopRecording = async () => {
+  //   try {
+  //     await call.stopRecording();
+  //     setIsRecording(false);
+  //     let meetingData = await call.queryRecordings();
+      
+  //     console.log("🎥 Recordings after stop:", meetingData);
+
+  //     // if (recordings.length === 0) {
+  //     //   console.log("No recordings found");
+  //     //   return null;
+  //     // }
+  //     console.log("Sorting recordings");
+  //     let recordings = meetingData.recordings
+  //     let latestRecording = recordings[0];
+
+  //     console.log("Latest recording:", latestRecording);
+  //     toast.success("Recording stopped");
+  //   } catch (error) {
+  //     toast.error("Failed to stop recording");
+  //   }
+  // };
+
   const handleStopRecording = async () => {
     try {
       await call.stopRecording();
       setIsRecording(false);
-      let meetingData = await call.queryRecordings();
-      console.log("🎥 Recordings after stop:", meetingData);
-      // if (recordings.length === 0) {
-      //   console.log("No recordings found");
-      //   return null;
-      // }
-      console.log("Sorting recordings");
-      let recordings = meetingData.recordings
-      let latestRecording = recordings[0];
-
-      console.log("Latest recording:", latestRecording);
       toast.success("Recording stopped");
+      toast.success("Wait for 30 seconds for the recording to be processed!");
+      
+      await new Promise((resolve) => setTimeout(resolve, 30000));
+
+      const meetingData = await call.queryRecordings();
+      const recordings = meetingData.recordings;
+
+      console.log("Recordings after stop of recording: ", recordings);
+
+      if (!recordings || recordings.length === 0) {
+        console.log("No recordings found");
+        return;
+      }
+
+      const latestRecording = recordings[0]; 
+      console.log("Latest recording:", latestRecording);
+
+      await axiosInstance.post("/gemini/upload-conversation", {
+        userId: authUser._id,
+        videoURL: latestRecording.url
+      });
+
+      toast.success("Recording data sent to server");
     } catch (error) {
-      toast.error("Failed to stop recording");
+      toast.error("Failed to stop recording or send data");
+      console.error(error);
     }
   };
 
